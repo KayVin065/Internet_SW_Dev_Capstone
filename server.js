@@ -1,7 +1,7 @@
 const express = require('express');
 const { MongoClient } = require('mongodb');
 
-const connectionString = 'mongodb+srv://jqg8:goosesg33s3@capstone-cluster-vincen.vbh4uvf.mongodb.net/';
+const connectionString = ''; // secret
 const mongo = new MongoClient(connectionString);
 
 const app = express();

@@ -1,0 +1,1 @@
+Capstone project completed for Internet Software Development. The assignment was to create the frontend and backend for a library, in which you could check out and check in books. These changes would automatically be stored and updated in the MongoDB Library Database created for this project. 

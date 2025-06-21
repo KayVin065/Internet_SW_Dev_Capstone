@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Wizard Library</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      body {
+        background-color: #441669;
+        color: yellow;
+        text-align: center;
+        font-family: Papyrus, Copperplate, fantasy;
+      }
+
+      h1 {
+        text-align: center;
+        font-size: 56px;
+      }
+
+      button {
+        padding: 10px 20px;
+        margin: 10px;
+        margin-top: -5px;
+        margin-bottom: 20px;
+        font-size: 16px;
+        font-family: Papyrus, Copperplate, fantasy;
+        font-weight: bold;
+        border: none;
+        background-color: #9754cf;
+        color: white;
+        border-radius: 25px;
+      }
+
+      ul {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0;
+        margin: 0 auto;
+      }
+
+      li button {
+          margin-top: -5px;
+      }
+
+      li {
+        list-style-type: none;
+        margin-top: -5px;
+        margin-bottom: 30px;
+        padding: 8px;
+
+        border: 2px solid #9754cf;
+        border-radius: 25px;
+        width: 600px;
+        box-sizing: border-box;
+      }
+
+      strong {
+        font-size: 20px;
+      }
+
+    </style>
+
+  </head>
+
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const serverUrl = "http://127.0.0.1:3000/books";
+
+      // button that shows all books available for check-out
+      // allows you to check out these books and prompts for name
+      function CheckOutButton() { 
+        const [outBooks, setBooks] = React.useState([]);
+        const fetchBooks = async () => {
+          const data = await fetch(`${serverUrl}?avail=true`).then(res => res.json());
+          setBooks(data);
+        }
+
+        React.useEffect(() => {
+          fetchBooks();
+        }, []);
+
+        const checkOutBook = async (id) => {
+          // update who has the book
+          console.log("checkOutBook called");
+          const name = prompt("Enter name:");
+          console.log("Name before return: " + name);
+          if (!name) return;
+
+          console.log("Name: " + name);
+
+          // update due date information
+          let dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() + 14);
+          dueDate = dueDate.toLocaleDateString("en-US");
+
+          await fetch(`${serverUrl}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              avail: false,
+              who: name,
+              due: dueDate
+            })
+          }).then(res => {
+            if(res.ok) {
+              fetchBooks();
+            } else {
+              alert("Failed to check out book!");
+            }
+          });
+
+        };
+
+        return (
+          <div className="book">
+            { outBooks.length === 0 ? (
+              <p><strong>Sorry! No books are available for check out</strong></p>
+            ) : (
+              <ul>
+                {outBooks.map(book => (
+                  <li key={book.id}>
+                    <p><strong>{book.title}</strong> by {book.author}</p>
+                    <p>Publisher: {book.publisher}</p>
+                    <p>ISBN: {book.isbn}</p>
+                    <button onClick={() => checkOutBook(book.id)}>Check Out</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      }
+
+      // button that shows all books that are currently checked out
+      // allows you to check them back in
+      function CheckInButton() { 
+        const [inBooks, setBooks] = React.useState([]);
+        const fetchBooks = async () => {
+          const data = await fetch(`${serverUrl}?avail=false`).then(res => res.json());
+          setBooks(data);
+        }
+
+        React.useEffect(() => {
+          fetchBooks();
+        }, []);
+
+        const checkInBook = async (id) => {
+          await fetch(`${serverUrl}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              avail: true,
+              who: "",
+              due: ""
+            })
+          }).then(res => {
+            if(res.ok) {
+              fetchBooks();
+            } else {
+              alert("Failed to check in book!");
+            }
+          });
+        };
+
+        return (
+          <div className="book">
+            {inBooks.length === 0 ? (
+              <p><strong>No books currently checked out!</strong></p>
+            ) : (
+              <ul>
+                {inBooks.map(book => (
+                  <li key={book.id}>
+                    <p><strong>{book.title}</strong> by {book.author}</p>
+                    <p>Publisher: {book.publisher}</p>
+                    <p>ISBN: {book.isbn}</p>
+                    <p>Who: {book.who} | Due: {book.due}</p>
+                    <button onClick={() => checkInBook(book.id)}>Check In</button>
+                  </li>
+                ))}
+            </ul>
+          )}
+          </div>
+        );
+      }
+
+      // lists every book in the library
+      function DisplayBooks() {
+        const [books, setBooks] = React.useState([]);
+        const [showCheckOut, setShowCheckOut] = React.useState(false);
+        const [showCheckIn, setShowCheckIn] = React.useState(false);
+        let availability = new URLSearchParams(window.location.search).get("avail");
+
+        const fetchBooks = async () => {
+            let tempUrl = serverUrl;
+            if(availability !== null) {
+                tempUrl += `?avail=${availability}`;
+            }
+
+            const data = await fetch(tempUrl).then(res => res.json());
+            setBooks(data);
+        }
+
+        React.useEffect(() => {
+          fetchBooks();
+        }, [availability]);
+
+        // update this to show entire app layout
+        return(
+          <div>
+            <h1>Wizard Library</h1>
+            
+            <button onClick={() => {
+              setShowCheckIn(true);
+              setShowCheckOut(false);
+            }}>Check In</button>
+
+            <button onClick={() => {
+              setShowCheckIn(false);
+              setShowCheckOut(true);
+            }}>Check Out</button>
+
+            <button onClick={() => {
+              setShowCheckIn(false);
+              setShowCheckOut(false);
+              fetchBooks();
+            }}>Home</button>
+
+            {showCheckIn && <CheckInButton />}
+            {showCheckOut && <CheckOutButton />}
+            {!showCheckIn && !showCheckOut && (
+              <ul>
+                {books.map(book => (
+                  <li key={book.id}>
+                    <p><strong>{book.title}</strong> by {book.author} - {book.avail ? "available" : "unavailable"}</p>
+                    <p>Publisher: {book.publisher}</p>
+                    <p>ISBN: {book.isbn}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      }
+
+      function App() {
+        return (
+          <div>
+            <DisplayBooks />
+          </div>
+        );
+      }
+
+    </script>
+
+    <script type="text/babel">
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
+  </body>
+
+</html>
